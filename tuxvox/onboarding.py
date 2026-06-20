@@ -51,7 +51,9 @@ _WELCOME_BODY: str = (
     "\u2500\u2500\u2500\u2500\u2500\n\n"
     "TuxVox needs to download the speech recognition model "
     "(approx. 300 MB for the default \u201cBase\u201d model). "
-    "This only happens once."
+    "This only happens once.\n\n"
+    "Please open Settings first to check your microphone input or "
+    "investigate options like different models and Inline Mode."
 )
 
 
@@ -63,36 +65,36 @@ _WELCOME_BODY: str = (
 def show_onboarding_dialog(
     parent_window: Gtk.Window,
     on_download: Callable[[], None],
-    on_choose_model: Callable[[], None],
+    on_settings: Callable[[], None],
 ) -> None:
     """Present the first-launch onboarding dialog.
 
     The dialog explains TuxVox's privacy model and offers two
     actions:
 
+    * **Open Settings** — directs the user to the Settings window to
+      check their microphone or choose a different model.
     * **Download & Get Started** — downloads the default "Base" model
       and proceeds immediately.
-    * **Choose a Different Model** — opens the model-selection flow so
-      the user can pick an alternative before downloading.
 
     Args:
         parent_window: The GTK window to attach the dialog to.
         on_download: Callback invoked when the user chooses to download
             the default model.
-        on_choose_model: Callback invoked when the user wants to pick a
-            different model first.
+        on_settings: Callback invoked when the user wants to open
+            the Settings window first.
     """
     logger.info("Presenting onboarding dialog.")
 
     dialog = Adw.AlertDialog.new(_WELCOME_HEADING, _WELCOME_BODY)
 
     # -- responses --------------------------------------------------------
-    dialog.add_response("choose", "Choose a Different Model")
     dialog.add_response("download", "Download & Get Started")
+    dialog.add_response("settings", "Open Settings")
 
-    dialog.set_response_appearance("download", Adw.ResponseAppearance.SUGGESTED)
-    dialog.set_default_response("download")
-    dialog.set_close_response("choose")
+    dialog.set_response_appearance("settings", Adw.ResponseAppearance.SUGGESTED)
+    dialog.set_default_response("settings")
+    dialog.set_close_response("settings")
 
     # -- response handler -------------------------------------------------
     def _on_response(_dialog: Adw.AlertDialog, response: str) -> None:
@@ -100,13 +102,13 @@ def show_onboarding_dialog(
         if response == "download":
             logger.info("User chose: Download & Get Started.")
             on_download()
-        elif response == "choose":
-            logger.info("User chose: Choose a Different Model.")
-            on_choose_model()
+        elif response == "settings":
+            logger.info("User chose: Open Settings.")
+            on_settings()
         else:
-            # Fallback — treat unknown / close as "choose"
+            # Fallback — treat unknown / close as "settings"
             logger.debug("Onboarding dialog closed with response: %s", response)
-            on_choose_model()
+            on_settings()
 
     dialog.connect("response", _on_response)
     dialog.present(parent_window)

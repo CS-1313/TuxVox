@@ -70,11 +70,11 @@ class AppWindow(Adw.ApplicationWindow):
                 self._config.set("has_completed_onboarding", True)
                 self._config.set("model", "base")
 
-            def on_choose_model():
+            def on_settings():
                 self._config.set("has_completed_onboarding", True)
                 self._on_settings_clicked(None)
 
-            GLib.idle_add(show_onboarding_dialog, self, on_download, on_choose_model)
+            GLib.idle_add(show_onboarding_dialog, self, on_download, on_settings)
 
         # Handle experimental mode
         self._experimental_manager = None
