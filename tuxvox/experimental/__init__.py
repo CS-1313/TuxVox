@@ -258,7 +258,8 @@ class ExperimentalManager:
         output_mode = self._config.get("output_mode")
 
         if output_mode == "inline":
-            success, err_msg = self.inline_typer.type_text(text)
+            text_to_type = text + " "
+            success, err_msg = self.inline_typer.type_text(text_to_type)
             if not success:
                 logger.warning(f"Inline typing failed, falling back to panel: {err_msg}")
                 chime.play("error")
