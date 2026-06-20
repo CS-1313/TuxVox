@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lint tools
+        run: pip install flake8 black
+
+      - name: Run flake8
+        run: flake8 tuxvox/ tests/ --max-line-length 99 --extend-ignore E203,W503,E402,E501
+
+      - name: Check formatting with black
+        run: black --check --line-length 99 --target-version py311 tuxvox/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 libsndfile1
+
+      - name: Install Python dependencies
+        run: |
+          pip install pytest psutil numpy sounddevice soundfile
+          pip install openai-whisper --extra-index-url https://download.pytorch.org/whl/cpu
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short

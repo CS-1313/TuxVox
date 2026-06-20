@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.tuxvox.TuxVox</id>
+  <name>TuxVox</name>
+  <summary>Speech to text — dictate and transcribe with ease</summary>
+
+  <description>
+    <p>
+      TuxVox is a stable, CPU-only speech-to-text application for Linux,
+      built from a clean-slate architecture using GTK4 and libadwaita. It
+      supports multiple Whisper models, letting you choose the right balance
+      between speed and accuracy for your hardware. Text flows onto the screen
+      in a smooth typewriter style as your speech is transcribed in real time.
+      Everything runs fully offline on your machine — no cloud services, no
+      data collection — so your voice stays private.
+    </p>
+    <p>
+      🔒 100% Private and Offline — TuxVox uses a local AI model (OpenAI
+      Whisper) that runs entirely on your computer. Your voice is processed
+      locally, never transmitted to any server, and your voice audio is
+      never stored after transcription is complete. The only network request
+      TuxVox makes is
+      an optional one-time model download. After that, it works with no
+      internet connection — permanently.
+    </p>
+  </description>
+
+  <url type="homepage">https://github.com/CS-1313/TuxVox</url>
+  <url type="bugtracker">https://github.com/CS-1313/TuxVox/issues</url>
+
+  <launchable type="desktop-id">org.tuxvox.TuxVox.desktop</launchable>
+
+  <project_license>AGPL-3.0-or-later</project_license>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.2.0" date="2026-06-06">
+      <description>
+        <p>v0.2: Experimental Mode with Global Hotkey and Inline Typing, plus privacy transparency messaging throughout the app.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2024-01-15">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <developer id="org.tuxvox">
+    <name>TuxVox Contributors</name>
+  </developer>
+
+  <categories>
+    <category>Audio</category>
+    <category>Utility</category>
+  </categories>
+
+  <keywords>
+    <keyword>speech</keyword>
+    <keyword>text</keyword>
+    <keyword>transcription</keyword>
+    <keyword>dictation</keyword>
+    <keyword>whisper</keyword>
+  </keywords>
+</component>

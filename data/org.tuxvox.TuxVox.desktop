@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=TuxVox
+Comment=Speech to text — dictate and transcribe with ease
+Exec=tuxvox
+Icon=org.tuxvox.TuxVox
+Terminal=false
+Type=Application
+Categories=Audio;Utility;GTK;
+Keywords=speech;text;transcription;dictation;whisper;
+StartupWMClass=org.tuxvox.TuxVox
