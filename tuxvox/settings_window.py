@@ -212,6 +212,21 @@ class SettingsWindow(Adw.PreferencesWindow):
         self._devices = devices
         input_group.add(self._mic_combo)
 
+        # Auto-configure microphone button
+        auto_config_row = Adw.ActionRow(
+            title="Auto-Configure Microphone",
+            subtitle="Tests all microphones and selects the best one while you speak.",
+        )
+        auto_config_btn = Gtk.Button(
+            label="Auto-Configure",
+            valign=Gtk.Align.CENTER,
+        )
+        auto_config_btn.add_css_class("suggested-action")
+        auto_config_btn.connect("clicked", self._on_autoconfig_mic_clicked)
+        auto_config_row.add_suffix(auto_config_btn)
+        auto_config_row.set_activatable_widget(auto_config_btn)
+        input_group.add(auto_config_row)
+
         # Microphone test bar
         self._mic_level_bar = Gtk.LevelBar()
         self._mic_level_bar.set_min_value(0.0)
@@ -581,6 +596,153 @@ class SettingsWindow(Adw.PreferencesWindow):
             pass  # User cancelled
 
     # ── Microphone Testing ────────────────────────────────────────────
+
+    def _on_autoconfig_mic_clicked(self, _button: Gtk.Button) -> None:
+        """Launch mic auto-configure."""
+        dialog = Gtk.Window(title="Auto-Configure Microphone")
+        dialog.set_modal(True)
+        dialog.set_transient_for(self)
+        dialog.set_default_size(400, 200)
+        dialog.set_resizable(False)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(24)
+        box.set_margin_bottom(24)
+        box.set_margin_start(24)
+        box.set_margin_end(24)
+
+        label = Gtk.Label(
+            label="Please speak continuously (e.g. say 'Testing, Testing, Testing').\nTesting microphones..."
+        )
+        label.set_justify(Gtk.Justification.CENTER)
+
+        progress = Gtk.ProgressBar()
+        progress.set_fraction(0.0)
+
+        box.append(label)
+        box.append(progress)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        box.append(cancel_btn)
+
+        dialog.set_child(box)
+
+        self._autoconfig_dialog = dialog
+        self._autoconfig_progress = progress
+        self._autoconfig_cancelled = False
+        self._autoconfig_best_mic = None
+        self._autoconfig_best_level = 0.0
+        self._autoconfig_current_idx = 0
+
+        # Build device list: index 0 is default mic, rest are specific mics
+        self._autoconfig_device_list = [
+            {"name": "Default System Microphone", "index": None}
+        ] + self._devices
+
+        # Stop the default mic test stream so it doesn't conflict
+        self._stop_mic_test()
+
+        cancel_btn.connect("clicked", self._on_autoconfig_cancel)
+        dialog.connect("close-request", self._on_autoconfig_cancel)
+        dialog.present()
+
+        # Start the sequence
+        GLib.timeout_add(100, self._autoconfig_step)
+
+    def _on_autoconfig_cancel(self, *args) -> bool:
+        """Handle auto-config cancellation."""
+        self._autoconfig_cancelled = True
+        if hasattr(self, "_autoconfig_stream") and self._autoconfig_stream:
+            try:
+                self._autoconfig_stream.stop()
+                self._autoconfig_stream.close()
+            except Exception:
+                pass
+            self._autoconfig_stream = None
+        if hasattr(self, "_autoconfig_dialog") and self._autoconfig_dialog:
+            self._autoconfig_dialog.close()
+            self._autoconfig_dialog = None
+        self._start_mic_test()
+        return False
+
+    def _autoconfig_step(self) -> bool:
+        """Process one step (one microphone) of the auto-config process."""
+        if self._autoconfig_cancelled:
+            return False
+
+        # Evaluate previous stream if open
+        if hasattr(self, "_autoconfig_stream") and self._autoconfig_stream:
+            try:
+                self._autoconfig_stream.stop()
+                self._autoconfig_stream.close()
+            except Exception:
+                pass
+            self._autoconfig_stream = None
+
+            if self._autoconfig_current_level > self._autoconfig_best_level:
+                self._autoconfig_best_level = self._autoconfig_current_level
+                self._autoconfig_best_mic = self._autoconfig_current_idx - 1
+
+        if self._autoconfig_current_idx >= len(self._autoconfig_device_list):
+            self._finish_autoconfig()
+            return False
+
+        device = self._autoconfig_device_list[self._autoconfig_current_idx]
+        self._autoconfig_current_level = 0.0
+
+        def _test_cb(
+            indata: np.ndarray, frames: int, time_info: object, status: sd.CallbackFlags
+        ) -> None:
+            if not indata.size:
+                return
+            rms = float(np.sqrt(np.mean(indata**2)))
+            level = min(1.0, rms * 5.0)
+            if level > self._autoconfig_current_level:
+                self._autoconfig_current_level = level
+
+        try:
+            device_arg = device.get("index") if device.get("index") is not None else None
+            self._autoconfig_stream = sd.InputStream(
+                samplerate=16000,
+                channels=1,
+                dtype="float32",
+                device=device_arg,
+                callback=_test_cb,
+            )
+            self._autoconfig_stream.start()
+        except Exception as exc:
+            logger.error("Auto-config failed for device %s: %s", device.get("name"), exc)
+
+        self._autoconfig_current_idx += 1
+        fraction = self._autoconfig_current_idx / len(self._autoconfig_device_list)
+        self._autoconfig_progress.set_fraction(fraction)
+
+        # Move to next step after 600ms to allow user to speak
+        GLib.timeout_add(600, self._autoconfig_step)
+        return False
+
+    def _finish_autoconfig(self) -> None:
+        """Finalize auto-config and apply the best mic."""
+        if hasattr(self, "_autoconfig_dialog") and self._autoconfig_dialog:
+            self._autoconfig_dialog.close()
+            self._autoconfig_dialog = None
+
+        if self._autoconfig_best_mic is not None and self._autoconfig_best_level > 0.01:
+            self._mic_combo.set_selected(self._autoconfig_best_mic)
+            logger.info(
+                "Auto-configured mic to index %d with level %f",
+                self._autoconfig_best_mic,
+                self._autoconfig_best_level,
+            )
+            toast = Adw.Toast.new("Microphone auto-configured successfully.")
+            toast.set_timeout(3)
+            self.add_toast(toast)
+        else:
+            toast = Adw.Toast.new("Could not detect audio on any microphone.")
+            toast.set_timeout(3)
+            self.add_toast(toast)
+
+        self._start_mic_test()
 
     def _start_mic_test(self) -> None:
         """Start or restart the background stream to test microphone input."""
