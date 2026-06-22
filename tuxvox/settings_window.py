@@ -612,7 +612,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         box.set_margin_end(24)
 
         label = Gtk.Label(
-            label="Please speak continuously (e.g. say 'Testing, Testing, Testing').\nTesting microphones..."
+            label="Speak as close as possible to the desired microphone and repeatedly say “Testing, Testing, Testing, Testing” until the test is finished."
         )
         label.set_justify(Gtk.Justification.CENTER)
 
