@@ -678,11 +678,10 @@ class AppWindow(Adw.ApplicationWindow):
         """Show dialog asking whether to keep running in background."""
         dialog = Adw.AlertDialog.new(
             "Keep Running in Background?",
-            "TuxVox will keep running in the background so your hotkey "
-            "keeps working. You can quit it fully from the system tray, or "
-            "turn off Experimental Mode in Settings.",
+            "TuxVox can keep running in the background so your hotkeys "
+            "keep working. Or you can fully quit out of the application.",
         )
-        dialog.add_response("keep", "Keep Running")
+        dialog.add_response("keep", "Keep Running in Background")
         dialog.add_response("quit", "Quit Fully")
         dialog.set_response_appearance("quit", Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.set_default_response("keep")

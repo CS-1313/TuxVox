@@ -622,13 +622,22 @@ class SettingsWindow(Adw.PreferencesWindow):
         box.append(label)
         box.append(progress)
 
+        button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        button_box.set_halign(Gtk.Align.CENTER)
+
         cancel_btn = Gtk.Button(label="Cancel")
-        box.append(cancel_btn)
+        begin_btn = Gtk.Button(label="Begin Test")
+        begin_btn.add_css_class("suggested-action")
+
+        button_box.append(cancel_btn)
+        button_box.append(begin_btn)
+        box.append(button_box)
 
         dialog.set_child(box)
 
         self._autoconfig_dialog = dialog
         self._autoconfig_progress = progress
+        self._autoconfig_begin_btn = begin_btn
         self._autoconfig_cancelled = False
         self._autoconfig_best_mic = None
         self._autoconfig_best_level = 0.0
@@ -643,11 +652,15 @@ class SettingsWindow(Adw.PreferencesWindow):
         self._stop_mic_test()
 
         cancel_btn.connect("clicked", self._on_autoconfig_cancel)
+
+        def _on_begin_clicked(_btn):
+            begin_btn.set_sensitive(False)
+            begin_btn.set_label("Testing...")
+            GLib.timeout_add(100, self._autoconfig_step)
+
+        begin_btn.connect("clicked", _on_begin_clicked)
         dialog.connect("close-request", self._on_autoconfig_cancel)
         dialog.present()
-
-        # Start the sequence
-        GLib.timeout_add(100, self._autoconfig_step)
 
     def _on_autoconfig_cancel(self, *args) -> bool:
         """Handle auto-config cancellation."""
