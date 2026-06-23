@@ -169,7 +169,8 @@ membership, so the same one-time step enables both halves of the feature.
 
 | Symptom | Fix |
 |---------|-----|
-| General bugs or weird behavior | Fully close out of the application, restart your computer, and rerun the curl installation/update script to ensure you have the latest files. |
+| General bugs or weird behavior | 1. Fully close the application. <br>2. Restart your computer. <br>3. Rerun the curl installation/update script to ensure you have the latest files. |
+| General Wipe and Reinstall | If basic troubleshooting fails, you can completely reset TuxVox (if it is installed in your home directory — change path if needed). <br><br>⚠️ **Warning:** This will delete your custom settings, as well as any saved transcriptions if you chose to save them inside the `~/TuxVox` directory. <br><br>`rm -rf ~/TuxVox && rm -rf ~/.config/tuxvox && curl -sSL https://raw.githubusercontent.com/CS-1313/TuxVox/main/install.sh \| bash` |
 | Hotkey does nothing | Confirm you are in the `input` group (`groups \| grep input`); reboot your computer after running the setup script. |
 | Nothing is typed | `/dev/uinput` isn't writable — download and run `setup-uinput.sh` with sudo, then reboot your computer. Check logs for an "inline typing unavailable" warning. |
 | Text goes to the wrong window | Make sure the target window has focus before pressing the hotkey; the inline overlay is intentionally suppressed so focus stays put. |
@@ -180,13 +181,13 @@ membership, so the same one-time step enables both halves of the feature.
 If you ever need to completely remove TuxVox and all of its traces from your computer:
 
 **1. Remove the application:**
-Simply delete the folder you cloned:
+Simply delete the folder you cloned (change path if needed):
 ```bash
 rm -rf ~/TuxVox
 ```
 
-**2. Remove configuration and saved transcriptions:**
-TuxVox saves your preferences and any transcription history in your configuration folder. To wipe this data:
+**2. Remove configuration:**
+TuxVox saves your preferences in your configuration folder. To wipe this data:
 ```bash
 rm -rf ~/.config/tuxvox
 ```
