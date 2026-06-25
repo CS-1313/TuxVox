@@ -53,14 +53,14 @@ cd ~/TuxVox
 ./setup.sh
 ```
 
+> 💡 **Why a virtual environment?** Modern Linux distributions (like Ubuntu 24.04+ and Fedora) block system-wide pip installs ([PEP 668](https://peps.python.org/pep-0668/)). The `./setup.sh` script automatically creates a venv to keep TuxVox's dependencies isolated. It uses the `--system-site-packages` flag so the environment can access your system-installed GTK4/libadwaita Python bindings, which cannot be installed via pip.
+
 **3. Launch TuxVox**
 ```bash
 ./run.sh
 ```
 
 </details>
-
-> **Why a virtual environment?** Modern Ubuntu (24.04+) and Fedora block system-wide pip installs ([PEP 668](https://peps.python.org/pep-0668/)). The venv keeps TuxVox's dependencies isolated. The `--system-site-packages` flag is needed so the venv can access the system-installed GTK4/libadwaita Python bindings, which can't be pip-installed.
 
 ## 🎤 Usage
 
