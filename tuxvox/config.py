@@ -47,6 +47,7 @@ _DEFAULTS: dict[str, Any] = {
     "confidence_threshold": 0.5,
     "punctuation": True,
     "save_history": False,
+    "history_path": os.path.expanduser("~/Documents/TuxVox"),
     "diagnostic_logs": False,
     "paragraph_mode": False,
     # v0.2 — Experimental Mode keys

@@ -87,6 +87,31 @@ class Recorder:
         logger.debug("Found %d input device(s)", len(devices))
         return devices
 
+    @staticmethod
+    def resolve_device(device: int | str | None) -> int | str | None:
+        """Resolve a device setting (name or index) to a sounddevice input index.
+
+        Prioritises exact name match among input devices so that saved device
+        names persist across system reboots when numeric indices change.
+        """
+        if device is None or (isinstance(device, str) and device.lower() == "default"):
+            return None
+
+        if isinstance(device, int):
+            return device
+
+        if isinstance(device, str):
+            for dev in Recorder.list_devices():
+                if dev["name"] == device:
+                    return dev["index"]
+
+            try:
+                return int(device)
+            except ValueError:
+                pass
+
+        return device
+
     # ------------------------------------------------------------------
     # Instance lifecycle
     # ------------------------------------------------------------------
@@ -123,9 +148,8 @@ class Recorder:
         if self._stream is not None:
             raise RuntimeError("Recording is already in progress — call stop() first.")
 
-        # Normalise the device argument.
-        if isinstance(device, str) and device.lower() == "default":
-            device = None
+        # Normalise and resolve the device argument.
+        resolved_device = self.resolve_device(device)
 
         self._sample_rate = sample_rate
         self._buffer = []
@@ -146,13 +170,14 @@ class Recorder:
                 samplerate=sample_rate,
                 channels=1,
                 dtype="float32",
-                device=device,
+                device=resolved_device,
                 callback=_audio_callback,
             )
             self._stream.start()
             logger.info(
-                "Recording started (device=%s, rate=%d Hz)",
+                "Recording started (device=%s [resolved=%s], rate=%d Hz)",
                 device if device is not None else "default",
+                resolved_device if resolved_device is not None else "default",
                 sample_rate,
             )
         except Exception as exc:

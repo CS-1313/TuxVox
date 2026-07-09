@@ -208,11 +208,3 @@ Found a bug? Use the **Help & Diagnostics** section in Settings to copy your dia
 ## 📄 License
 
 GNU Affero General Public License v3.0 — see [LICENSE](LICENSE) for details.
-
-## 🗺️ Roadmap
-
-- **Flathub Release:** Make TuxVox available on Flathub for easy 1-click installation across all Linux distributions.
-
-```bash
-flatpak install flathub org.tuxvox.TuxVox
-```

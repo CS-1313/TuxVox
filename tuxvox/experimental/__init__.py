@@ -184,14 +184,7 @@ class ExperimentalManager:
 
             try:
                 mic = self._config.get("microphone")
-                device = None if mic == "default" else mic
-                if device is not None:
-                    try:
-                        device = int(device)
-                    except ValueError:
-                        pass
-
-                self._app_window._recorder.start(device=device)
+                self._app_window._recorder.start(device=mic)
                 self._app_window._is_recording = True
 
                 chime.play("start")
@@ -263,7 +256,7 @@ class ExperimentalManager:
             if not success:
                 logger.warning(f"Inline typing failed, falling back to panel: {err_msg}")
                 chime.play("error")
-                self._app_window.append_transcription_text(text)
+                self._app_window.append_transcription_text(text, mode="Panel Mode")
                 self._app_window.flash_taskbar()
                 self.overlay.set_state("done_panel")
                 self.overlay.show_overlay()
@@ -272,10 +265,11 @@ class ExperimentalManager:
                 # Success: text was typed into the focused app. Do NOT show
                 # the overlay (it would steal focus). A chime confirms it.
                 chime.play("done")
+                self._app_window.save_transcription_history(text, mode="Inline Mode")
             return False
         else:
             chime.play("done")
-            self._app_window.append_transcription_text(text)
+            self._app_window.append_transcription_text(text, mode="Panel Mode")
             self._app_window.flash_taskbar()
             self.overlay.set_state("done_panel")
             self.overlay.show_overlay()

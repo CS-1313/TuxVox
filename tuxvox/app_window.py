@@ -330,16 +330,7 @@ class AppWindow(Adw.ApplicationWindow):
         """Start audio recording."""
         try:
             mic = self._config.get("microphone")
-            device = None if mic == "default" else mic
-
-            # Try to convert device to int index if it's a number string
-            if device is not None:
-                try:
-                    device = int(device)
-                except (ValueError, TypeError):
-                    pass
-
-            self._recorder.start(device=device)
+            self._recorder.start(device=mic)
             self._is_recording = True
             self._update_record_button_label(recording=True)
             self._set_status_recording()
@@ -459,6 +450,8 @@ class AppWindow(Adw.ApplicationWindow):
             )
             return
 
+        self._last_transcribed_text = result.text.strip()
+
         # Prepare words for streaming
         show_confidence = self._config.get("show_confidence")
 
@@ -499,7 +492,11 @@ class AppWindow(Adw.ApplicationWindow):
             self._set_status_ready()
 
             # Save to history if enabled
-            self._save_to_history()
+            text_to_save = getattr(self, "_last_transcribed_text", None)
+            if text_to_save:
+                self.save_transcription_history(text_to_save, mode="Panel Mode")
+            else:
+                self._save_to_history()
 
             return False  # Stop the timeout
 
@@ -593,39 +590,42 @@ class AppWindow(Adw.ApplicationWindow):
 
     # ── History saving ────────────────────────────────────────────────
 
-    def _save_to_history(self) -> None:
-        """Save transcription to file if history saving is enabled."""
-        if not self._config.get("save_history"):
+    def save_transcription_history(self, text: str, mode: str = "Panel Mode") -> None:
+        """Save transcription text to history file with timestamp and mode identifier."""
+        if not self._config.get("save_history") or not text or not text.strip():
             return
 
         import os
         from datetime import datetime
 
-        history_path = self._config.get("history_path")
-        if not history_path:
-            return
+        history_path = self._config.get("history_path") or os.path.expanduser("~/Documents/TuxVox")
 
         try:
             os.makedirs(history_path, exist_ok=True)
-            filename = datetime.now().strftime("tuxvox_%Y-%m-%d.txt")
+            now = datetime.now()
+            filename = now.strftime("tuxvox_%Y-%m-%d.txt")
             filepath = os.path.join(history_path, filename)
 
-            start = self._text_buffer.get_start_iter()
-            end = self._text_buffer.get_end_iter()
-            text = self._text_buffer.get_text(start, end, True)
+            timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
             with open(filepath, "a", encoding="utf-8") as f:
-                timestamp = datetime.now().strftime("%H:%M:%S")
-                f.write(f"\n[{timestamp}]\n{text}\n")
+                f.write(f"[{timestamp_str}][{mode}]\n{text.strip()}\n\n")
 
-            logger.info(f"Transcription saved to {filepath}")
+            logger.info(f"Transcription ({mode}) saved to {filepath}")
 
         except Exception as e:
             logger.error(f"Failed to save transcription history: {e}")
 
+    def _save_to_history(self) -> None:
+        """Backward-compatible wrapper around save_transcription_history."""
+        start = self._text_buffer.get_start_iter()
+        end = self._text_buffer.get_end_iter()
+        text = self._text_buffer.get_text(start, end, True)
+        self.save_transcription_history(text, mode="Panel Mode")
+
     # ── Public API for experimental mode ────────────────────────────
 
-    def append_transcription_text(self, text: str) -> None:
+    def append_transcription_text(self, text: str, mode: str = "Panel Mode") -> None:
         """Append transcribed text to the editor (used by ExperimentalManager).
 
         This is the public entry point for the experimental hotkey pipeline
@@ -648,6 +648,7 @@ class AppWindow(Adw.ApplicationWindow):
 
         self._set_status_ready()
         logger.info("Text appended via experimental hotkey pipeline.")
+        self.save_transcription_history(text, mode=mode)
 
     def flash_taskbar(self) -> None:
         """Flash the taskbar entry to notify user of new text (panel mode)."""

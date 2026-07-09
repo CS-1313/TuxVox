@@ -204,7 +204,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             self._mic_combo.set_selected(0)
         else:
             for i, d in enumerate(devices):
-                if str(d.get("index")) == str(current_mic) or d["name"] == current_mic:
+                if d["name"] == current_mic or str(d.get("index")) == str(current_mic):
                     self._mic_combo.set_selected(i + 1)
                     break
 
@@ -543,7 +543,7 @@ class SettingsWindow(Adw.PreferencesWindow):
             self._config.set("microphone", "default")
         elif 0 < idx <= len(self._devices):
             device = self._devices[idx - 1]
-            self._config.set("microphone", str(device["index"]))
+            self._config.set("microphone", device["name"])
 
         self._start_mic_test()
 
@@ -762,12 +762,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         self._stop_mic_test()
 
         current_mic = self._config.get("microphone")
-        device_arg = None
-        if current_mic and current_mic != "default":
-            try:
-                device_arg = int(current_mic)
-            except ValueError:
-                device_arg = current_mic
+        device_arg = Recorder.resolve_device(current_mic)
 
         try:
             self._test_stream = sd.InputStream(
@@ -934,6 +929,20 @@ class SettingsWindow(Adw.PreferencesWindow):
         inline_row.set_activatable_widget(self._inline_check)
         output_group.add(inline_row)
 
+        # Setup command row for Inline Mode permissions
+        setup_row = Adw.ActionRow(
+            title="Inline Typing Permissions",
+            subtitle="View terminal command to configure /dev/uinput access",
+        )
+        view_cmd_btn = Gtk.Button(
+            label="View Command",
+            valign=Gtk.Align.CENTER,
+        )
+        view_cmd_btn.connect("clicked", self._on_view_uinput_setup_clicked)
+        setup_row.add_suffix(view_cmd_btn)
+        setup_row.set_activatable_widget(view_cmd_btn)
+        output_group.add(setup_row)
+
         # Set current selection
         current_mode = self._config.get("output_mode") or "panel"
         if current_mode == "inline":
@@ -1009,28 +1018,64 @@ class SettingsWindow(Adw.PreferencesWindow):
             import os
 
             if not os.access("/dev/uinput", os.W_OK):
-                dialog = Adw.AlertDialog.new(
-                    "Setup Required for Inline Mode",
-                    "Inline mode requires write access to /dev/uinput. "
-                    "To enable this, run the setup script included with TuxVox. "
-                    "After running the script, reboot your computer.",
-                )
+                self._show_uinput_setup_dialog(required=True)
 
-                command_label = Gtk.Label(
-                    label="sudo bash ~/TuxVox/scripts/setup-uinput.sh",
-                    selectable=True,
-                    wrap=True,
-                    xalign=0.0,
-                )
-                command_label.add_css_class("card")
-                command_label.add_css_class("dim-label")
-                command_label.set_margin_top(12)
+    def _on_view_uinput_setup_clicked(self, _button: Gtk.Button) -> None:
+        """Show the uinput setup command dialog."""
+        self._show_uinput_setup_dialog(required=False)
 
-                dialog.set_extra_child(command_label)
-                dialog.add_response("ok", "OK")
-                dialog.set_default_response("ok")
-                dialog.set_close_response("ok")
-                dialog.present(self)
+    def _show_uinput_setup_dialog(self, required: bool = False) -> None:
+        """Show the dialog with the command to configure /dev/uinput permissions."""
+        import os
+
+        is_writable = os.access("/dev/uinput", os.W_OK)
+
+        if required or not is_writable:
+            title = "Setup Required for Inline Mode"
+            body = (
+                "Inline mode requires write access to /dev/uinput. "
+                "To enable this, run the setup script included with TuxVox "
+                "in your terminal. After running the script, reboot your computer."
+            )
+        else:
+            title = "Inline Typing Setup Command"
+            body = (
+                "Inline mode uses /dev/uinput to type text into other applications. "
+                "If permissions are missing or reset after a system update, "
+                "run this command in your terminal and reboot:"
+            )
+
+        dialog = Adw.AlertDialog.new(title, body)
+
+        command_label = Gtk.Label(
+            label="sudo bash ~/TuxVox/scripts/setup-uinput.sh",
+            selectable=True,
+            wrap=True,
+            xalign=0.0,
+        )
+        command_label.add_css_class("card")
+        command_label.add_css_class("dim-label")
+        command_label.set_margin_top(12)
+
+        dialog.set_extra_child(command_label)
+        dialog.add_response("close", "Close")
+        dialog.add_response("copy", "Copy Command")
+        dialog.set_response_appearance("copy", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("copy")
+        dialog.set_close_response("close")
+        dialog.connect("response", self._on_uinput_setup_response)
+        dialog.present(self)
+
+    def _on_uinput_setup_response(self, _dialog: Adw.AlertDialog, response: str) -> None:
+        """Handle response from the uinput setup dialog."""
+        if response == "copy":
+            cmd = "sudo bash ~/TuxVox/scripts/setup-uinput.sh"
+            clipboard = Gdk.Display.get_default().get_clipboard()
+            clipboard.set(cmd)
+            toast = Adw.Toast.new("Copied setup command to clipboard.")
+            toast.set_timeout(3)
+            self.add_toast(toast)
+            logger.info("Copied uinput setup command to clipboard.")
 
     def _on_change_hotkey_clicked(self, _button: Gtk.Button) -> None:
         """Open the hotkey capture dialog."""
