@@ -465,10 +465,10 @@ class AppWindow(Adw.ApplicationWindow):
             self._stream_words = [{"text": w, "probability": 1.0} for w in words]
 
         # Add separator if there's existing text
-        end_iter = self._text_buffer.get_end_iter()
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
         if self._text_buffer.get_char_count() > 0:
             if not self._config.get("paragraph_mode"):
-                self._text_buffer.insert(end_iter, "\n\n")
+                self._text_buffer.insert(insert_iter, "\n\n")
 
         # Start typewriter streaming
         self._stream_index = 0
@@ -482,8 +482,8 @@ class AppWindow(Adw.ApplicationWindow):
         """Insert the next word in the typewriter effect. Returns True to continue."""
         if self._stream_index >= len(self._stream_words):
             if self._config.get("paragraph_mode"):
-                end_iter = self._text_buffer.get_end_iter()
-                self._text_buffer.insert(end_iter, " ")
+                insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
+                self._text_buffer.insert(insert_iter, " ")
 
             # Streaming complete
             self._stream_timeout_id = None
@@ -507,18 +507,18 @@ class AppWindow(Adw.ApplicationWindow):
         if self._stream_index > 0:
             word_text = " " + word_text
 
-        end_iter = self._text_buffer.get_end_iter()
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
 
         # Insert with optional confidence tag
         show_confidence = self._config.get("show_confidence")
         if show_confidence and word_info["probability"] < 0.7:
-            self._text_buffer.insert_with_tags_by_name(end_iter, word_text, "low-confidence")
+            self._text_buffer.insert_with_tags_by_name(insert_iter, word_text, "low-confidence")
         else:
-            self._text_buffer.insert(end_iter, word_text)
+            self._text_buffer.insert(insert_iter, word_text)
 
         # Auto-scroll to bottom
-        end_iter = self._text_buffer.get_end_iter()
-        self._text_view.scroll_to_iter(end_iter, 0.0, False, 0.0, 1.0)
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
+        self._text_view.scroll_to_iter(insert_iter, 0.0, False, 0.0, 0.0)
 
         self._stream_index += 1
         return True  # Continue streaming
@@ -635,16 +635,17 @@ class AppWindow(Adw.ApplicationWindow):
         if not text.strip():
             return
 
-        end_iter = self._text_buffer.get_end_iter()
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
         if self._text_buffer.get_char_count() > 0:
-            self._text_buffer.insert(end_iter, "\n\n")
-            end_iter = self._text_buffer.get_end_iter()
+            if not self._config.get("paragraph_mode"):
+                self._text_buffer.insert(insert_iter, "\n\n")
 
-        self._text_buffer.insert(end_iter, text.strip())
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
+        self._text_buffer.insert(insert_iter, text.strip())
 
         # Auto-scroll to bottom
-        end_iter = self._text_buffer.get_end_iter()
-        self._text_view.scroll_to_iter(end_iter, 0.0, False, 0.0, 1.0)
+        insert_iter = self._text_buffer.get_iter_at_mark(self._text_buffer.get_insert())
+        self._text_view.scroll_to_iter(insert_iter, 0.0, False, 0.0, 1.0)
 
         self._set_status_ready()
         logger.info("Text appended via experimental hotkey pipeline.")

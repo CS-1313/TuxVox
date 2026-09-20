@@ -49,7 +49,7 @@ _DEFAULTS: dict[str, Any] = {
     "save_history": False,
     "history_path": os.path.expanduser("~/Documents/TuxVox"),
     "diagnostic_logs": False,
-    "paragraph_mode": False,
+    "paragraph_mode": True,
     # v0.2 — Experimental Mode keys
     "experimental_mode": False,
     "output_mode": "panel",
