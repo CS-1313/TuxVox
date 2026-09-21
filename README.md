@@ -24,6 +24,7 @@ TuxVox lets you quickly dictate text and paste it into any application. It uses 
 - **Additive editor** — each transcription appends to the previous text; edit freely
 - **Clean-slate architecture** — the transcription engine is fully destroyed and rebuilt between each use, preventing state bleed and crashes
 - **Smart model recommendation** — automatically detects your hardware and suggests the best Whisper model
+- **Voice Macros (Catchwords)** — swap spoken phrases with custom text or punctuation (e.g., "my email" → "you@domain.com")
 - **Privacy first** — everything runs locally, fully offline after initial setup
 - **GNOME-native UI** — built with GTK4 and libadwaita, supports light/dark mode
 
@@ -81,7 +82,8 @@ Access settings via the gear icon in the header bar:
 | **Spoken Language** | Set your language or use Auto-Detect |
 | **Text Appearance Speed** | Control the typewriter effect speed |
 | **Show Word Confidence** | Dim uncertain words for accuracy review |
-| **Include Punctuation** | Toggle automatic punctuation |
+| **Include Punctuation** | Toggle Whisper's automatic punctuation, and optionally enable Custom Catchwords. |
+| **Catchwords** | Define custom voice macros (e.g., "exclamation point" → "!") or text snippets (e.g., "my email" → "you@example.com"). |
 | **Save Transcriptions** | Optionally save to daily text files |
 
 ### Model Comparison

@@ -13,4 +13,4 @@
 
 """TuxVox — A stable, elegant, CPU-only speech-to-text application for Linux."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

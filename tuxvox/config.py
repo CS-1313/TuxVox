@@ -57,6 +57,12 @@ _DEFAULTS: dict[str, Any] = {
     "inline_wayland_permission_granted": False,
     "background_on_close": True,
     "has_completed_onboarding": False,
+    # v0.3 - Voice Catchwords
+    "catchwords_mode": False,
+    "catchwords": [
+        {"phrase": "exclamation point", "replacement": "!", "enabled": True},
+        {"phrase": "colon", "replacement": ":", "enabled": True},
+    ],
 }
 
 

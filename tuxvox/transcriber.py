@@ -100,6 +100,8 @@ class Transcriber:
         language: str | None = None,
         word_timestamps: bool = True,
         punctuation: bool = True,
+        catchwords_mode: bool = False,
+        catchwords: list[dict] | None = None,
         download_callback: Callable[[int, int], None] | None = None,
     ) -> TranscriptionResult:
         """Transcribe an audio file using the specified Whisper model.
@@ -195,6 +197,31 @@ class Transcriber:
                 text = re.sub(r"[^\w\s]", "", text)
                 for wi in words:
                     wi.word = re.sub(r"[^\w\s]", "", wi.word)
+            elif catchwords_mode and catchwords:
+                active_cws = [
+                    cw
+                    for cw in catchwords
+                    if cw.get("enabled", True) and cw.get("phrase") and cw.get("replacement")
+                ]
+                active_cws.sort(key=lambda x: len(x["phrase"]), reverse=True)
+
+                for cw in active_cws:
+                    p = cw["phrase"].strip()
+                    r = cw["replacement"]
+
+                    is_pure_punct = bool(re.fullmatch(r"[^\w\s]+", r))
+                    escaped_p = re.escape(p)
+
+                    if is_pure_punct:
+                        # Consume preceding whitespace and trailing punctuation
+                        pattern = r"(?i)\s*(?<!\w)" + escaped_p + r"(?!\w)[^\w\s]*"
+                        escaped_r = r.replace("\\", "\\\\")
+                        text = re.sub(pattern, escaped_r, text)
+                    else:
+                        # Leave preceding whitespace alone, preserve trailing punctuation
+                        pattern = r"(?i)(?<!\w)" + escaped_p + r"(?!\w)([^\w\s]*)"
+                        escaped_r = r.replace("\\", "\\\\")
+                        text = re.sub(pattern, escaped_r + r"\1", text)
 
             logger.info(
                 'Transcription complete (%.2fs): "%s"',

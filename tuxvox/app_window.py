@@ -389,6 +389,8 @@ class AppWindow(Adw.ApplicationWindow):
             model_key = self._config.get("model")
             language = self._config.get("language")
             punctuation = self._config.get("punctuation")
+            catchwords_mode = self._config.get("catchwords_mode")
+            catchwords = self._config.get("catchwords")
             show_confidence = self._config.get("show_confidence")
 
             # Resolve config key → actual Whisper model name
@@ -408,6 +410,8 @@ class AppWindow(Adw.ApplicationWindow):
                 language=language if language != "auto" else None,
                 word_timestamps=show_confidence,
                 punctuation=punctuation,
+                catchwords_mode=catchwords_mode,
+                catchwords=catchwords,
                 download_callback=on_progress,
             )
 

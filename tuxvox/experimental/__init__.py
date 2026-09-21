@@ -211,6 +211,8 @@ class ExperimentalManager:
             model_key = self._config.get("model")
             language = self._config.get("language")
             punctuation = self._config.get("punctuation")
+            catchwords_mode = self._config.get("catchwords_mode")
+            catchwords = self._config.get("catchwords")
 
             from tuxvox.system_info import MODEL_INFO
 
@@ -223,6 +225,8 @@ class ExperimentalManager:
                 language=language if language != "auto" else None,
                 word_timestamps=False,
                 punctuation=punctuation,
+                catchwords_mode=catchwords_mode,
+                catchwords=catchwords,
             )
 
             GLib.idle_add(self._on_transcription_complete, result.text)

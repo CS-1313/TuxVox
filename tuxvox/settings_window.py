@@ -99,6 +99,7 @@ class SettingsWindow(Adw.PreferencesWindow):
         self._test_timer_id: int = 0
 
         self._build_general_page()
+        self._build_catchwords_page()
         self._build_diagnostics_page()
 
         self.connect("close-request", self._on_close_request)
@@ -341,6 +342,18 @@ class SettingsWindow(Adw.PreferencesWindow):
         self._punctuation_switch.connect("notify::active", self._on_punctuation_changed)
         display_group.add(self._punctuation_switch)
 
+        # Catchwords combo row
+        self._catchwords_combo = Adw.ComboRow(
+            title="Punctuation Mode",
+            subtitle="Choose between Whisper's default punctuation or enabling Custom Catchwords.",
+        )
+        cw_model = Gtk.StringList.new(["Whisper", "Whisper + Custom Catchwords"])
+        self._catchwords_combo.set_model(cw_model)
+        self._catchwords_combo.set_selected(1 if self._config.get("catchwords_mode") else 0)
+        self._catchwords_combo.set_visible(self._config.get("punctuation"))
+        self._catchwords_combo.connect("notify::selected", self._on_catchwords_mode_changed)
+        display_group.add(self._catchwords_combo)
+
         # Paragraph Mode toggle
         self._paragraph_mode_switch = Adw.SwitchRow(
             title="Paragraph Mode",
@@ -389,6 +402,176 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # ── Experimental Mode section ──
         self._build_experimental_section(page)
+
+    # ── Page: Catchwords ──────────────────────────────────────────────
+
+    def _build_catchwords_page(self) -> None:
+        """Build the Catchwords preferences page."""
+        self._cw_page = Adw.PreferencesPage(
+            title="Catchwords",
+            icon_name="edit-find-replace-symbolic",
+        )
+        self.add(self._cw_page)
+
+        # Intro text
+        intro_group = Adw.PreferencesGroup()
+        intro_label = Gtk.Label(
+            label="These are Catchwords that the post-processing looks for and swaps with your respective Replacement Text when Whisper + Custom Catchwords are toggled on, these can range from simple punctuation to macros. These are not case-sensitive to improve the Catchword sensitivity to be registered and replaced.",
+            wrap=True,
+            xalign=0.0,
+        )
+        intro_label.add_css_class("dim-label")
+        intro_label.set_margin_bottom(12)
+        intro_group.add(intro_label)
+        self._cw_page.add(intro_group)
+
+        # The Catchwords List Group
+        self._cw_group = Adw.PreferencesGroup(title="Your Catchwords")
+        self._cw_page.add(self._cw_group)
+
+        # Populate list
+        self._refresh_catchwords_list()
+
+        # Add Button
+        add_btn = Gtk.Button(label="Add New Catchword")
+        add_btn.add_css_class("suggested-action")
+        add_btn.set_halign(Gtk.Align.CENTER)
+        add_btn.set_margin_top(12)
+        add_btn.connect("clicked", self._on_add_catchword_clicked)
+
+        btn_group = Adw.PreferencesGroup()
+        btn_group.add(add_btn)
+        self._cw_page.add(btn_group)
+
+    def _refresh_catchwords_list(self) -> None:
+        """Clear and rebuild the catchwords list UI."""
+        if not hasattr(self, "_cw_rows"):
+            self._cw_rows = []
+
+        # Remove existing rows
+        for row in self._cw_rows:
+            self._cw_group.remove(row)
+        self._cw_rows.clear()
+
+        catchwords = self._config.get("catchwords") or []
+
+        # Ensure the list is always alphabetically sorted (case-insensitive)
+        catchwords.sort(key=lambda x: x.get("phrase", "").lower())
+        self._config.set("catchwords", catchwords)
+
+        for i, cw in enumerate(catchwords):
+            phrase = GLib.markup_escape_text(cw.get("phrase", ""))
+            replacement = GLib.markup_escape_text(cw.get("replacement", ""))
+            row = Adw.ActionRow(title=phrase, subtitle=replacement)
+
+            # Checkbox
+            check = Gtk.CheckButton()
+            check.set_active(cw.get("enabled", True))
+            check.set_valign(Gtk.Align.CENTER)
+            check.connect("toggled", self._on_catchword_toggled, i)
+            row.add_prefix(check)
+
+            # Box for buttons
+            btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            btn_box.set_valign(Gtk.Align.CENTER)
+
+            # Edit Button
+            edit_btn = Gtk.Button(icon_name="document-edit-symbolic", valign=Gtk.Align.CENTER)
+            edit_btn.add_css_class("flat")
+            edit_btn.connect("clicked", self._on_catchword_edit_clicked, i)
+            btn_box.append(edit_btn)
+
+            # Delete Button
+            del_btn = Gtk.Button(icon_name="user-trash-symbolic", valign=Gtk.Align.CENTER)
+            del_btn.add_css_class("destructive-action")
+            del_btn.connect("clicked", self._on_catchword_delete_clicked, i)
+            btn_box.append(del_btn)
+
+            row.add_suffix(btn_box)
+
+            self._cw_group.add(row)
+            self._cw_rows.append(row)
+
+    def _on_catchword_toggled(self, check: Gtk.CheckButton, idx: int) -> None:
+        catchwords = self._config.get("catchwords") or []
+        if 0 <= idx < len(catchwords):
+            catchwords[idx]["enabled"] = check.get_active()
+            self._config.set("catchwords", catchwords)
+
+    def _on_catchword_delete_clicked(self, _btn: Gtk.Button, idx: int) -> None:
+        catchwords = self._config.get("catchwords") or []
+        if 0 <= idx < len(catchwords):
+            catchwords.pop(idx)
+            self._config.set("catchwords", catchwords)
+            self._refresh_catchwords_list()
+
+    def _on_add_catchword_clicked(self, _btn: Gtk.Button) -> None:
+        self._open_catchword_dialog(-1)
+
+    def _on_catchword_edit_clicked(self, _btn: Gtk.Button, idx: int) -> None:
+        self._open_catchword_dialog(idx)
+
+    def _open_catchword_dialog(self, edit_idx: int) -> None:
+        catchwords = self._config.get("catchwords") or []
+        is_edit = 0 <= edit_idx < len(catchwords)
+
+        win = Gtk.Window(
+            title="Edit Catchword" if is_edit else "Add Catchword", transient_for=self, modal=True
+        )
+        win.set_default_size(300, -1)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        vbox.set_margin_start(12)
+        vbox.set_margin_end(12)
+        vbox.set_margin_top(12)
+        vbox.set_margin_bottom(12)
+
+        phrase_entry = Gtk.Entry(placeholder_text="Spoken Phrase (e.g., exclamation point)")
+        replacement_entry = Gtk.Entry(placeholder_text="Replacement (e.g., !)")
+
+        if is_edit:
+            phrase_entry.set_text(catchwords[edit_idx].get("phrase", ""))
+            replacement_entry.set_text(catchwords[edit_idx].get("replacement", ""))
+
+        vbox.append(Gtk.Label(label="Phrase:", xalign=0.0))
+        vbox.append(phrase_entry)
+        vbox.append(Gtk.Label(label="Replacement:", xalign=0.0))
+        vbox.append(replacement_entry)
+
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        hbox.set_halign(Gtk.Align.END)
+
+        cancel_btn = Gtk.Button(label="Cancel")
+        save_btn = Gtk.Button(label="Save")
+        save_btn.add_css_class("suggested-action")
+
+        hbox.append(cancel_btn)
+        hbox.append(save_btn)
+        vbox.append(hbox)
+
+        win.set_child(vbox)
+
+        def on_cancel(*args):
+            win.destroy()
+
+        def on_save(*args):
+            p = phrase_entry.get_text().strip()
+            r = replacement_entry.get_text().strip()
+            if p and r:
+                cw = self._config.get("catchwords") or []
+                if is_edit:
+                    cw[edit_idx]["phrase"] = p
+                    cw[edit_idx]["replacement"] = r
+                else:
+                    cw.append({"phrase": p, "replacement": r, "enabled": True})
+                self._config.set("catchwords", cw)
+                self._refresh_catchwords_list()
+            win.destroy()
+
+        cancel_btn.connect("clicked", on_cancel)
+        save_btn.connect("clicked", on_save)
+
+        win.present()
 
     # ── Page 2: Help & Diagnostics ────────────────────────────────────
 
@@ -565,7 +748,13 @@ class SettingsWindow(Adw.PreferencesWindow):
 
     def _on_punctuation_changed(self, switch: Adw.SwitchRow, _pspec) -> None:
         """Handle punctuation toggle change."""
-        self._config.set("punctuation", switch.get_active())
+        active = switch.get_active()
+        self._config.set("punctuation", active)
+        self._catchwords_combo.set_visible(active)
+
+    def _on_catchwords_mode_changed(self, combo: Adw.ComboRow, _pspec) -> None:
+        """Handle Catchwords mode selection."""
+        self._config.set("catchwords_mode", combo.get_selected() == 1)
 
     def _on_paragraph_mode_changed(self, switch: Adw.SwitchRow, _pspec) -> None:
         """Handle paragraph mode toggle change."""
