@@ -31,7 +31,8 @@ if [ ! -d "TuxVox" ]; then
     git clone https://github.com/CS-1313/TuxVox.git
 else
     echo "TuxVox directory exists. Pulling latest updates..."
-    git -C TuxVox pull
+    git -C TuxVox fetch origin
+    git -C TuxVox reset --hard origin/main
 fi
 
 # 3. Enter the directory and run the main setup
