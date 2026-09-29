@@ -39,21 +39,12 @@ from tuxvox.logger import logger  # noqa: E402
 _WELCOME_HEADING: str = "Welcome to TuxVox"
 
 _WELCOME_BODY: str = (
-    "\U0001f512 TuxVox processes everything on your computer using a "
-    "local AI model. Your voice recordings are never sent to the internet. "
-    "Your voice audio is never stored after transcription is complete, and "
-    "is never shared with anyone \u2014 including the developers.\n\n"
-    "The only internet connection TuxVox will ever make is the one-time "
-    "model download below. After that, the app works entirely offline \u2014 "
+    "\U0001f512 TuxVox processes everything on your computer locally and is "
+    "100% private. The only internet connection TuxVox will ever make is "
+    "the one-time model download. After that, the app works entirely offline \u2014 "
     "forever.\n\n"
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
-    "\u2500\u2500\u2500\u2500\u2500\n\n"
-    "TuxVox needs to download the speech recognition model "
-    "(approx. 300 MB for the default \u201cBase\u201d model). "
-    "This only happens once.\n\n"
-    "Please open Settings first to check your microphone input or "
-    "investigate options like different models and Inline Mode."
+    "Please open Settings first to check your microphone input or investigate "
+    "options like different models, Inline Mode, and Catchwords."
 )
 
 
@@ -64,23 +55,18 @@ _WELCOME_BODY: str = (
 
 def show_onboarding_dialog(
     parent_window: Gtk.Window,
-    on_download: Callable[[], None],
     on_settings: Callable[[], None],
 ) -> None:
     """Present the first-launch onboarding dialog.
 
-    The dialog explains TuxVox's privacy model and offers two
-    actions:
+    The dialog explains TuxVox's privacy model and offers one
+    action:
 
     * **Open Settings** — directs the user to the Settings window to
       check their microphone or choose a different model.
-    * **Download & Get Started** — downloads the default "Base" model
-      and proceeds immediately.
 
     Args:
         parent_window: The GTK window to attach the dialog to.
-        on_download: Callback invoked when the user chooses to download
-            the default model.
         on_settings: Callback invoked when the user wants to open
             the Settings window first.
     """
@@ -89,7 +75,6 @@ def show_onboarding_dialog(
     dialog = Adw.AlertDialog.new(_WELCOME_HEADING, _WELCOME_BODY)
 
     # -- responses --------------------------------------------------------
-    dialog.add_response("download", "Download & Get Started")
     dialog.add_response("settings", "Open Settings")
 
     dialog.set_response_appearance("settings", Adw.ResponseAppearance.SUGGESTED)
@@ -99,10 +84,7 @@ def show_onboarding_dialog(
     # -- response handler -------------------------------------------------
     def _on_response(_dialog: Adw.AlertDialog, response: str) -> None:
         """Dispatch to the appropriate callback based on the user's choice."""
-        if response == "download":
-            logger.info("User chose: Download & Get Started.")
-            on_download()
-        elif response == "settings":
+        if response == "settings":
             logger.info("User chose: Open Settings.")
             on_settings()
         else:

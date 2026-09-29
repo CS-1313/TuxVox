@@ -66,15 +66,11 @@ class AppWindow(Adw.ApplicationWindow):
         if not self._config.get("has_completed_onboarding"):
             from tuxvox.onboarding import show_onboarding_dialog
 
-            def on_download():
-                self._config.set("has_completed_onboarding", True)
-                self._config.set("model", "base")
-
             def on_settings():
                 self._config.set("has_completed_onboarding", True)
                 self._on_settings_clicked(None)
 
-            GLib.idle_add(show_onboarding_dialog, self, on_download, on_settings)
+            GLib.idle_add(show_onboarding_dialog, self, on_settings)
 
         # Handle experimental mode
         self._experimental_manager = None
