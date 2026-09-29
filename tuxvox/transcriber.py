@@ -213,8 +213,8 @@ class Transcriber:
                     escaped_p = re.escape(p)
 
                     if is_pure_punct:
-                        # Consume preceding whitespace and trailing punctuation
-                        pattern = r"(?i)\s*(?<!\w)" + escaped_p + r"(?!\w)[^\w\s]*"
+                        # Consume preceding whitespace AND punctuation, and trailing punctuation
+                        pattern = r"(?i)(?:\s|[^\w\s])*(?<!\w)" + escaped_p + r"(?!\w)[^\w\s]*"
                         escaped_r = r.replace("\\", "\\\\")
                         text = re.sub(pattern, escaped_r, text)
                     else:
